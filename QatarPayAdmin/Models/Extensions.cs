@@ -88,7 +88,8 @@ namespace QatarPayAdmin.Models
 			// Token: 0x04000790 RID: 1936
 			OoredooEnabled = 2044,
 			// Token: 0x04000791 RID: 1937
-			VodafoneEnabled
+			VodafoneEnabled,
+			//MemberHostedImageLocation=
 		}
 
 		// Token: 0x02000112 RID: 274

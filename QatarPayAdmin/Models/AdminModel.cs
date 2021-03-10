@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Web;
 
@@ -7,6 +8,12 @@ namespace QatarPayAdmin.Models
 {
     public class AdminModel
     {
+
+        public class VerifyPassportRequest
+        {
+			[Required]
+            public int UserID { get; set; }
+        }
 		public class UserDetailsModel : ActionResponse
 		{
 			public string Email
@@ -56,7 +63,9 @@ namespace QatarPayAdmin.Models
 				get;
 				set;
 			}
-		}
+            public bool IsQidVerified { get; set; }
+            public bool? IsPassportVerified { get; set; }
+        }
 
 		public class GetUserData : ActionResponse
 		{
@@ -111,7 +120,12 @@ namespace QatarPayAdmin.Models
 
 		public class UserData : ActionResponse
 		{
-			public string Id
+
+            public string PassportCopy { get; set; }
+            public string QIDFront { get; set; }
+            public string QIDBack { get; set; }
+
+            public string Id
 			{
 				get;
 				set;

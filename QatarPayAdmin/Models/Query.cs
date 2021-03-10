@@ -34,7 +34,9 @@ namespace QatarPayAdmin.Models
 						IsActive = (from x in status
 									where x.ID == d.UserStatusID
 									select x into s
-									select s.StatusName).FirstOrDefault()
+									select s.StatusName).FirstOrDefault(),
+						IsPassportVerified= d.PassportVerified ,
+						IsQidVerified=d.IsIDVerified,
 					}).ToList();
 		}
 

@@ -8,6 +8,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
+using System.Web.Http.ModelBinding;
+using static QatarPayAdmin.Models.AdminModel;
+using static QatarPayAdmin.Models.Extensions;
 
 namespace QatarPayAdmin.Controllers
 {
@@ -79,6 +82,10 @@ namespace QatarPayAdmin.Controllers
 				response.HomeNumber = user.HomeNumber;
 				response.PaymentCardLists = query.GetPaymentCardListsadmin(user.UserSequence);
 				response.BankDetailsLists = query.GetBankDetailsListsAdmin(user.UserSequence);
+				response.PassportCopy = "https://api.qatarpay.com/api/" + string.Format("{0}/{1}", settings[Extensions.SystemInfo.RegisterationGalleryPath].Replace("\\\\", "/"), user.PassportImageFront);
+				response.QIDFront = "https://api.qatarpay.com/api/" + string.Format("{0}/{1}", settings[Extensions.SystemInfo.RegisterationGalleryPath].Replace("\\\\", "/"), user.QIDFrontImagePath);
+				response.QIDBack = "https://api.qatarpay.com/api/" + string.Format("{0}/{1}", settings[Extensions.SystemInfo.RegisterationGalleryPath].Replace("\\\\", "/"), user.QIDBackImagePath);
+
 				response.success = true;
 				response.message = "user details";
 			}
@@ -91,6 +98,7 @@ namespace QatarPayAdmin.Controllers
 		}
 
 		[HttpGet]
+		[QatarPayAuthorize(Roles = "Administrator")]
 		public AdminModel.TransactionListModel GetTransactionList(string userSeq)
 		{
 			AdminModel.TransactionListModel response = new AdminModel.TransactionListModel();
@@ -120,6 +128,7 @@ namespace QatarPayAdmin.Controllers
 		}
 
 		[HttpGet]
+		[QatarPayAuthorize(Roles = "Administrator")]
 		public ActionResponse Changestatus(int usersequence, int statusId)
 		{
 			ActionResponse response = new ActionResponse();
@@ -151,6 +160,7 @@ namespace QatarPayAdmin.Controllers
 		}
 
 		[HttpGet]
+		[QatarPayAuthorize(Roles = "Administrator")]
 		public AdminModel.UserDatas CurrentUserDetails()
 		{
 			AdminModel.UserDatas response = new AdminModel.UserDatas();
@@ -171,6 +181,7 @@ namespace QatarPayAdmin.Controllers
 		}
 
 		[HttpGet]
+		[QatarPayAuthorize(Roles = "Administrator")]
 		public AdminModel.DashbordListModel DashboardData()
 		{
 			AdminModel.DashbordListModel response = new AdminModel.DashbordListModel();
@@ -182,6 +193,145 @@ namespace QatarPayAdmin.Controllers
 				response.TransactionListAmount = query.GetTransactionListAmount();
 				response.success = true;
 				response.message = "Details found";
+				return response;
+			}
+			catch (Exception ex)
+			{
+				response.success = false;
+				response.code = HttpStatusCode.ExpectationFailed.ToString();
+				response.message = ex.ToString();
+				return response;
+			}
+		}
+
+		[HttpPost]
+		[QatarPayAuthorize(Roles = "Administrator")]
+		public ActionResponse VerifyPassport(VerifyPassportRequest post)
+		{
+			ActionResponse response = new ActionResponse();
+			try
+			{
+				if (!ModelState.IsValid)
+				{
+					foreach (ModelState modelState in ModelState.Values)
+					{
+						foreach (ModelError error in modelState.Errors)
+						{
+							query.SaveTxtLog(string.Format("Phone Verification Error {0}: {1}", DebugCodes.ModelError, error.ErrorMessage));
+							response.errors.Add(error.ErrorMessage);
+
+						}
+					}
+					response.success = false;
+					response.code = String.Format("{0}", (int)HttpStatusCode.BadRequest);
+					response.message = "Invalid Model Detail";
+					return response;
+				}
+
+
+
+				AspNetUser users = new AspNetUser();
+				users = db.AspNetUsers.Where((AspNetUser x) => x.UserSequence == post.UserID).FirstOrDefault();
+				if (users != null)
+				{
+					users.PassportVerified = true;
+					users.PassportVerifiedDate = DateTime.Now;
+					
+					db.SaveChanges();
+					response.success = true;
+					response.message = "Status changed successfully";
+				}
+				else
+				{
+					response.success = false;
+					response.message = "User data not found";
+				}
+				return response;
+			}
+			catch (Exception ex)
+			{
+				response.success = false;
+				response.code = HttpStatusCode.ExpectationFailed.ToString();
+				response.message = ex.ToString();
+				return response;
+			}
+		}
+
+
+		[HttpPost]
+		[QatarPayAuthorize(Roles = "Administrator")]
+		public ActionResponse VerifyQID(VerifyPassportRequest post)
+		{
+			ActionResponse response = new ActionResponse();
+			try
+			{
+				if (!ModelState.IsValid)
+				{
+					foreach (ModelState modelState in ModelState.Values)
+					{
+						foreach (ModelError error in modelState.Errors)
+						{
+							query.SaveTxtLog(string.Format("Phone Verification Error {0}: {1}", DebugCodes.ModelError, error.ErrorMessage));
+							response.errors.Add(error.ErrorMessage);
+
+						}
+					}
+					response.success = false;
+					response.code = String.Format("{0}", (int)HttpStatusCode.BadRequest);
+					response.message = "Invalid Model Detail";
+					return response;
+				}
+
+
+
+				AspNetUser users = new AspNetUser();
+				users = db.AspNetUsers.Where((AspNetUser x) => x.UserSequence == post.UserID).FirstOrDefault();
+				if (users != null)
+				{
+					
+
+					var account_code = "QPAN";
+
+					if (users.IDCardNumber.ToLower() != "na")
+					{
+						if (users.IDCardNumber.Length != 11)
+						{
+
+							response.success = false;
+							response.code = String.Format("{0}", (int)HttpStatusCode.BadRequest);
+							response.message = " Invalid QID number";
+							return response;
+						}
+
+						account_code = $"1{users.IDCardNumber.Substring(3, 3)}{users.IDCardNumber.Substring(users.IDCardNumber.Length - 8)}";
+
+						var userid = db.AspNetUsers.Where(d => d.UserCode.StartsWith(users.UserCode)).Count() + 1;
+						if (userid.ToString().Length < 16)
+						{
+							
+							string usercode = db.AspNetUsers.Count().ToString();
+							users.UserCode = userid.ToString().PadLeft(16 - usercode.ToString().Length, '0') + usercode.ToString();
+
+						}
+
+						else
+						{
+							users.UserCode = users.UserCode + userid.ToString();
+						}
+						users.IsIDVerified = true;
+						users.IDVerifiedDate = DateTime.Now;
+
+						db.SaveChanges();
+
+					}
+					response.success = true;
+					response.message = "Status changed successfully";
+				}
+				else
+				{
+					response.success = false;
+					response.message = "User data not found";
+				}
 				return response;
 			}
 			catch (Exception ex)
