@@ -13,7 +13,70 @@ namespace QatarPayAdmin.Models
         public string ExternalAccessToken { get; set; }
     }
 
-    public class ChangePasswordBindingModel
+	public class UserRegisterBindingModel
+	{
+		
+		[Required]
+		[Display(Name = "Email")]
+		public string Email { get; set; }
+
+		
+		[Required]
+		public string FirstName { get; set; }
+
+		
+		[Required]
+		public string LastName { get; set; }
+
+		
+		[Required]
+		public string PhoneNumber { get; set; }
+
+		
+		[Required]
+		[StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 6)]
+		[DataType(DataType.Password)]
+		[Display(Name = "Password")]
+		public string Password { get; set; }
+
+		
+		[DataType(DataType.Password)]
+		[Display(Name = "Confirm password")]
+		[Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+		public string ConfirmPassword { get; set; }
+
+		
+		public string IDCardNumber { get; set; }
+
+		
+		public int UserType { get; set; }
+
+		
+		public string DigitalSignature { get; set; }
+
+	
+		public DateTime DOB { get; set; }
+
+		
+		public string PlaceOfBirth { get; set; }
+
+		
+		public string HomeNumber { get; set; }
+
+		
+		public DateTime QIDExpiry { get; set; }
+
+		
+		public string BuildingNo { get; set; }
+
+		
+		public string StreetNo { get; set; }
+
+		
+		public string Zone { get; set; }
+	}
+
+	public class ChangePasswordBindingModel
     {
         [Required]
         [DataType(DataType.Password)]

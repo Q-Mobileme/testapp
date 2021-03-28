@@ -4,9 +4,13 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using System.Web;
+using static QatarPayAdmin.Models.AdminModel;
 using static QatarPayAdmin.Models.Extensions;
 
 namespace QatarPayAdmin.Models
@@ -37,6 +41,9 @@ namespace QatarPayAdmin.Models
 									select s.StatusName).FirstOrDefault(),
 						IsPassportVerified= d.PassportVerified ,
 						IsQidVerified=d.IsIDVerified,
+						JoiningDate=d.JoiningDate,
+						PassportNumber=d.PassportNumber,
+						QPAN=d.UserCode,
 					}).ToList();
 		}
 
@@ -50,6 +57,34 @@ namespace QatarPayAdmin.Models
 					}).ToList();
 		}
 
+	
+
+		public Task<bool> SendEmailAsync(SendMailModel message)
+		{
+			Dictionary<SystemInfo, string> systemSetting = GetSystemSettings;
+			try
+			{
+				SmtpClient SmtpServer = new SmtpClient(systemSetting[SystemInfo.NotificationMailServer], int.Parse(systemSetting[SystemInfo.NotificationEmailPort]));
+				MailMessage mail = new MailMessage();
+				mail.From = new MailAddress(systemSetting[SystemInfo.NotificationEmail], systemSetting[SystemInfo.NotificationEmailName]);
+				mail.To.Add(message.ToEmailAddress);
+				mail.Subject = message.Subject;
+				mail.IsBodyHtml = true;
+				mail.Body = message.Body;
+				SmtpServer.UseDefaultCredentials = true;
+				SmtpServer.Credentials = new NetworkCredential(systemSetting[SystemInfo.NotificationEmail], Decrypt(systemSetting[SystemInfo.NotificationEmailPassword]));
+				SmtpServer.EnableSsl = ((systemSetting[SystemInfo.NotificationEmailSSL] == "true") ? true : false);
+				SmtpServer.Send(mail);
+				mail.Dispose();
+				SaveTxtLog($"{DebugCodes.Success}: Email send to {message.ToEmailAddress}");
+				return Task.FromResult(result: true);
+			}
+			catch (Exception e)
+			{
+				SaveTxtLog($"Email {DebugCodes.Exception}: Error Sending Email {e.ToString()}");
+				return Task.FromResult(result: false);
+			}
+		}
 		public Dictionary<SystemInfo, string> GetSystemSettings => db.SystemSettings.ToDictionary((SystemSetting t) => (SystemInfo)t.ID, (SystemSetting t) => t.Value);
 
 		public AspNetUser GetUserInfoByUserName(string username)
