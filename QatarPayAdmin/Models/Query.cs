@@ -1,4 +1,5 @@
-﻿using QatarPayAdmin.DataBase;
+﻿using Newtonsoft.Json;
+using QatarPayAdmin.DataBase;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
@@ -57,7 +58,111 @@ namespace QatarPayAdmin.Models
 					}).ToList();
 		}
 
-	
+
+		public TemporaryImageLocation GetTemperaryImageByID(int ID)
+		{
+			return db.TemporaryImageLocations.Where((TemporaryImageLocation s) => s.ID == ID).FirstOrDefault();
+		}
+
+		public bool SendFCM(string message, string subject, string DeviceToken)
+		{
+			try
+			{
+				Dictionary<Extensions.SystemInfo, string> settings = GetSystemSettings;
+				string applicationID = Decrypt(settings[Extensions.SystemInfo.FcmApplicationID]);
+				string senderId = Decrypt(settings[Extensions.SystemInfo.FcmSenderID]);
+				SaveTxtLog("ApplicationID:" + applicationID);
+				SaveTxtLog("senderId:" + senderId);
+				WebRequest tRequest = WebRequest.Create(settings[Extensions.SystemInfo.FcmAddress]);
+				tRequest.Method = "post";
+				tRequest.ContentType = "application/json";
+				List<string> dest = new List<string>();
+				dest.Add(DeviceToken);
+				var data = new
+				{
+					to = DeviceToken,
+					notification = new
+					{
+						body = message,
+						title = subject,
+						icon = "myicon",
+						sound = "default"
+					},
+					priority = "high"
+				};
+				string output = "";
+				output = JsonConvert.SerializeObject(data);
+				byte[] byteArray = Encoding.UTF8.GetBytes(output);
+				tRequest.Headers.Add($"Authorization: key={applicationID}");
+				tRequest.Headers.Add($"Sender: id={senderId}");
+				tRequest.ContentLength = byteArray.Length;
+				Stream dataStream = tRequest.GetRequestStream();
+				dataStream.Write(byteArray, 0, byteArray.Length);
+				WebResponse tResponse = tRequest.GetResponse();
+				Stream dataStreamResponse = tResponse.GetResponseStream();
+				StreamReader tReader = new StreamReader(dataStreamResponse);
+				string sResponseFromServer = tReader.ReadToEnd();
+				SaveTxtLog("Response from FCM:" + sResponseFromServer);
+				return true;
+			}
+			catch (Exception ex)
+			{
+				SaveTxtLog(ex.ToString());
+				return false;
+			}
+		}
+
+		public bool SendFCM(string message, string subject, int UserID)
+		{
+			try
+			{
+				Dictionary<Extensions.SystemInfo, string> settings = GetSystemSettings;
+				string applicationID = Decrypt(settings[Extensions.SystemInfo.FcmApplicationID]);
+				string senderId = Decrypt(settings[Extensions.SystemInfo.FcmSenderID]);
+				//SaveTxtLog("ApplicationID:" + applicationID);
+				//SaveTxtLog("senderId:" + senderId);
+				DeviceToken device = db.DeviceTokens.Where((DeviceToken d) => d.UserID == UserID).FirstOrDefault();
+				string deviceId = "";
+				deviceId = ((device == null) ? "49af1e67bb8e8306ae2cb3cf60c76a46646210be" : device.DeviceToken1);
+				SaveTxtLog($"UserID: {UserID} , DeviceToken:{deviceId}");
+				WebRequest tRequest = WebRequest.Create(settings[Extensions.SystemInfo.FcmAddress]);
+				tRequest.Method = "post";
+				tRequest.ContentType = "application/json";
+				List<string> dest = new List<string>();
+				dest.Add(deviceId);
+				var data = new
+				{
+					to = deviceId,
+					notification = new
+					{
+						body = message,
+						title = subject,
+						icon = "myicon",
+						sound = "default"
+					},
+					priority = "high"
+				};
+				string output = "";
+				output = JsonConvert.SerializeObject(data);
+				byte[] byteArray = Encoding.UTF8.GetBytes(output);
+				tRequest.Headers.Add($"Authorization: key={applicationID}");
+				tRequest.Headers.Add($"Sender: id={senderId}");
+				tRequest.ContentLength = byteArray.Length;
+				Stream dataStream = tRequest.GetRequestStream();
+				dataStream.Write(byteArray, 0, byteArray.Length);
+				WebResponse tResponse = tRequest.GetResponse();
+				Stream dataStreamResponse = tResponse.GetResponseStream();
+				StreamReader tReader = new StreamReader(dataStreamResponse);
+				string sResponseFromServer = tReader.ReadToEnd();
+				SaveTxtLog("Response from FCM:" + sResponseFromServer);
+				return true;
+			}
+			catch (Exception ex)
+			{
+				SaveTxtLog(ex.ToString());
+				return false;
+			}
+		}
 
 		public Task<bool> SendEmailAsync(SendMailModel message)
 		{

@@ -4,7 +4,7 @@
   <edmx:Runtime>
     <!-- SSDL content -->
     <edmx:StorageModels>
-      <Schema Namespace="QatarPayModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+    <Schema Namespace="QatarPayModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
         <EntityType Name="AccountLevel">
           <Key>
             <PropertyRef Name="ID" />
@@ -18,6 +18,21 @@
           <Property Name="EntryTime" Type="datetime" Nullable="false" />
           <Property Name="ModifiedTime" Type="datetime" Nullable="false" />
           <Property Name="ModifiedBy" Type="int" Nullable="false" />
+        </EntityType>
+        <EntityType Name="AppBanners">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="BannerLocation" Type="nvarchar(max)" Nullable="false" />
+          <Property Name="IsActive" Type="bit" Nullable="false" />
+          <Property Name="IOSEnabled" Type="bit" Nullable="false" />
+          <Property Name="AndroidEnabled" Type="bit" Nullable="false" />
+          <Property Name="StoreID" Type="int" Nullable="false" />
+          <Property Name="EntryTime" Type="datetime" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="ModifiedBy" Type="int" Nullable="false" />
+          <Property Name="ModifiedTime" Type="datetime" Nullable="false" />
         </EntityType>
         <EntityType Name="AspNetRoles">
           <Key>
@@ -1567,6 +1582,7 @@
         </Association>
         <EntityContainer Name="QatarPayModelStoreContainer">
           <EntitySet Name="AccountLevel" EntityType="Self.AccountLevel" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AppBanners" EntityType="Self.AppBanners" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AspNetRoles" EntityType="Self.AspNetRoles" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AspNetUserClaims" EntityType="Self.AspNetUserClaims" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AspNetUserLogins" EntityType="Self.AspNetUserLogins" Schema="dbo" store:Type="Tables" />
@@ -1659,8 +1675,7 @@
             <End Role="AspNetUserRoles" EntitySet="AspNetUserRoles" />
           </AssociationSet>
         </EntityContainer>
-      </Schema>
-    </edmx:StorageModels>
+      </Schema></edmx:StorageModels>
     <!-- CSDL content -->
     <edmx:ConceptualModels>
       <Schema Namespace="QatarPayModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
@@ -3319,7 +3334,23 @@
             <End Role="AspNetRoles" EntitySet="AspNetRoles" />
             <End Role="AspNetUserRoles" EntitySet="AspNetUserRoles" />
           </AssociationSet>
+          <EntitySet Name="AppBanners" EntityType="QatarPayModel.AppBanner" />
         </EntityContainer>
+        <EntityType Name="AppBanner">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="BannerLocation" Type="String" Nullable="false" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="IsActive" Type="Boolean" Nullable="false" />
+          <Property Name="IOSEnabled" Type="Boolean" Nullable="false" />
+          <Property Name="AndroidEnabled" Type="Boolean" Nullable="false" />
+          <Property Name="StoreID" Type="Int32" Nullable="false" />
+          <Property Name="EntryTime" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="ModifiedBy" Type="Int32" Nullable="false" />
+          <Property Name="ModifiedTime" Type="DateTime" Nullable="false" Precision="3" />
+        </EntityType>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -4954,6 +4985,22 @@
                 <ScalarProperty Name="CreatedOn" ColumnName="CreatedOn" />
                 <ScalarProperty Name="CreatedBy" ColumnName="CreatedBy" />
                 <ScalarProperty Name="RequestID" ColumnName="RequestID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AppBanners">
+            <EntityTypeMapping TypeName="QatarPayModel.AppBanner">
+              <MappingFragment StoreEntitySet="AppBanners">
+                <ScalarProperty Name="ModifiedTime" ColumnName="ModifiedTime" />
+                <ScalarProperty Name="ModifiedBy" ColumnName="ModifiedBy" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="EntryTime" ColumnName="EntryTime" />
+                <ScalarProperty Name="StoreID" ColumnName="StoreID" />
+                <ScalarProperty Name="AndroidEnabled" ColumnName="AndroidEnabled" />
+                <ScalarProperty Name="IOSEnabled" ColumnName="IOSEnabled" />
+                <ScalarProperty Name="IsActive" ColumnName="IsActive" />
+                <ScalarProperty Name="BannerLocation" ColumnName="BannerLocation" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

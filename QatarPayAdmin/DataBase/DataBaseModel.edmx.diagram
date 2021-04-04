@@ -94,6 +94,7 @@
         <EntityTypeShape EntityType="QatarPayModel.WoqoodyLogin" Width="1.5" PointX="4.75" PointY="29.75" IsExpanded="true" />
         <EntityTypeShape EntityType="QatarPayModel.WoqoodyRequestOrder" Width="1.5" PointX="6.75" PointY="29.75" IsExpanded="true" />
         <AssociationConnector Association="QatarPayModel.FK_dbo_AspNetUserRoles_dbo_AspNetRoles_RoleId" ManuallyRouted="false" />
+        <EntityTypeShape EntityType="QatarPayModel.AppBanner" Width="1.5" PointX="9.375" PointY="29.75" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

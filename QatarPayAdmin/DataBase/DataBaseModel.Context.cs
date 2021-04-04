@@ -113,5 +113,6 @@ namespace QatarPayAdmin.DataBase
         public virtual DbSet<WoqoodyConfirmOrderRequest> WoqoodyConfirmOrderRequests { get; set; }
         public virtual DbSet<WoqoodyLogin> WoqoodyLogins { get; set; }
         public virtual DbSet<WoqoodyRequestOrder> WoqoodyRequestOrders { get; set; }
+        public virtual DbSet<AppBanner> AppBanners { get; set; }
     }
 }

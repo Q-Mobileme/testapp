@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNet.Identity;
+﻿using ImageResizer;
+using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
 using Newtonsoft.Json;
@@ -7,11 +8,14 @@ using QatarPayAdmin.Models;
 using QatarPayAdmin.QatarPayAuthorization;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using System.Web.Http;
 using System.Web.Http.ModelBinding;
 using static QatarPayAdmin.Models.AdminModel;
@@ -372,6 +376,7 @@ namespace QatarPayAdmin.Controllers
 						users.IDVerifiedDate = DateTime.Now;
 
 						db.SaveChanges();
+						query.SendFCM("Congratulations, your Account is verified.", "Qapay Pay Account Verification", users.UserSequence);
 						response.success = true;
 						response.message = "Status changed successfully";
 						response.code = String.Format("{0}", (int)HttpStatusCode.OK);
@@ -617,6 +622,150 @@ namespace QatarPayAdmin.Controllers
 				response.code = String.Format("{0}", (int)HttpStatusCode.ExpectationFailed);
 				return response;
 			}
+		}
+
+
+		private string ReplaceImage(int imageid)
+		{
+			string result;
+			try
+			{
+				Dictionary<Extensions.SystemInfo, string> setting = this.query.GetSystemSettings;
+				DirectoryInfo originalDirectory = new DirectoryInfo(string.Format("{0}{1}", HttpContext.Current.Server.MapPath("~\\"), setting[Extensions.SystemInfo.RegisterationGalleryPath]));
+				DirectoryInfo tempDirectory = new DirectoryInfo(string.Format("{0}{1}", HttpContext.Current.Server.MapPath("~\\"), setting[Extensions.SystemInfo.TempGalleryPath]));
+				TemporaryImageLocation gallery_image = this.query.GetTemperaryImageByID(imageid);
+				string orignalImage = Path.GetFileName(gallery_image.OrignalFileLocation);
+				string thumbnailImage = Path.GetFileName(gallery_image.ThumbnailLocation);
+				File.Move(string.Format("{0}\\{1}", tempDirectory.ToString(), orignalImage), string.Format("{0}\\{1}", originalDirectory.ToString(), orignalImage));
+				File.Move(string.Format("{0}\\{1}", tempDirectory.ToString(), thumbnailImage), string.Format("{0}\\{1}", originalDirectory.ToString(), thumbnailImage));
+				result = string.Format("{0}/{1}", setting[Extensions.SystemInfo.RegisterationGalleryPath].Replace("\\\\", "/"), orignalImage);
+			}
+			catch (Exception ex)
+			{
+				this.query.SaveTxtLog("Error ReplaceImage Logo" + ex.Message);
+				result = "NA";
+			}
+			return result;
+		}
+
+		[HttpPost]
+		public ActionResponse UploadAppBanner()
+		{
+			int LanguageId = 1;
+			Dictionary<Extensions.SystemInfo, string> setting = this.query.GetSystemSettings;
+			ActionResponse response = new ActionResponse();
+			TemporaryImageLocation tmp = new TemporaryImageLocation();
+			try
+			{
+				HttpRequestMessage request = base.Request;
+				HttpRequest httpRequest = HttpContext.Current.Request;
+				NameValueCollection data = httpRequest.Form;
+				if (data.Get("LocationID") == null)
+				{
+					response.success = false;
+					response.code = HttpStatusCode.BadRequest.ToString();
+					response.message = "Location ID is required.";
+					return response;
+				}
+				
+				HttpFileCollection data_files = httpRequest.Files;
+				
+				if (data_files.Get("Banner") == null)
+				{
+					response.success = false;
+					response.code = HttpStatusCode.BadRequest.ToString();
+					response.message = "Banner is required.";
+					return response;
+				}
+				AspNetUser user = this.query.GetCurrentUserInfoByID(IdentityExtensions.GetUserId(base.User.Identity));
+				AppBanner banner = new AppBanner();
+				banner.AndroidEnabled = data.Get("AndroidEnabled") == null ? true : bool.Parse(data.Get("AndroidEnabled"));
+				banner.BannerLocation = "";
+				banner.EntryTime = DateTime.Now;
+				banner.IOSEnabled= data.Get("IOSEnabled") == null ? true : bool.Parse(data.Get("IOSEnabled"));
+				banner.IsActive = true;
+				banner.ModifiedBy = user.UserSequence;
+				banner.ModifiedTime = DateTime.Now;
+				banner.StoreID = int.Parse(data.Get("LocationID"));
+				banner.UserID = user.UserSequence;
+			
+				foreach (object obj in data_files)
+				{
+					string fileName = (string)obj;
+					if (fileName == "Banner" || fileName == "Logo")
+					{
+						HttpPostedFile file = httpRequest.Files[fileName];
+						string fileExt = Path.GetExtension(file.FileName).ToLower();
+						if (!(fileExt.ToLower() == ".jpg") && !(fileExt.ToLower() == ".png") && !(fileExt.ToLower() == ".jpeg"))
+						{
+							response.success = false;
+							response.message = ((LanguageId == 1) ? "png, jgp, JPEG format are Allowed" : "png, jgp, JPEG الصيغ المسموح بها");
+							response.code = HttpStatusCode.BadRequest.ToString();
+							return response;
+						}
+						this.query.SaveTxtLog("extention:" + fileExt);
+						DirectoryInfo originalDirectory = new DirectoryInfo(string.Format("{0}{1}", HttpContext.Current.Server.MapPath("~\\"), setting[Extensions.SystemInfo.TempGalleryPath]));
+						string pathString = originalDirectory.ToString();
+						string fileName2 = Path.GetFileName(file.FileName);
+						string pre_fix = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss_");
+						string file_to_save = string.Format("{0}-{1}", pre_fix, fileName2);
+						string file_to_save_thumbnail = string.Format("{0}-{1}", pre_fix + "logothumbnail", fileName2);
+						string file_to_save_gallery = string.Format("{0}-{1}", pre_fix + "gallery", fileName2);
+						string file_to_save_medium = string.Format("{0}-{1}", pre_fix + "med", fileName2);
+						if (!Directory.Exists(pathString))
+						{
+							Directory.CreateDirectory(pathString);
+						}
+						string path = string.Format("{0}\\{1}", pathString, file_to_save);
+						this.query.SaveTxtLog("path:" + path);
+						string new_path_thumbnail = string.Format("{0}\\{1}", pathString, file_to_save_thumbnail);
+						string new_path_gallery = string.Format("{0}\\{1}", pathString, file_to_save_gallery);
+						string new_path_medium = string.Format("{0}\\{1}", pathString, file_to_save_medium);
+						file.SaveAs(path);
+						this.query.SaveTxtLog("save as:");
+						new ImageJob(file, new_path_thumbnail, new Instructions("mode=pad;format=jpg;width=" + 1027.ToString() + ";height=" + 530.ToString()))
+						{
+							CreateParentDirectory = true
+						}.Build();
+						string MediumSize = string.Concat(new string[]
+						{
+							"mode=pad;format=jpg;width=",
+							513.ToString(),
+							";height=",
+							265.ToString(),
+							";"
+						});
+						new ImageJob(file, new_path_medium, new Instructions(MediumSize))
+						{
+							CreateParentDirectory = true
+						}.Build();
+						tmp.OrignalFileLocation = file_to_save;
+						tmp.ThumbnailLocation = file_to_save_thumbnail;
+						tmp.MediamFileLocation = file_to_save_medium;
+						tmp.EntryTime = DateTime.Now;
+						this.db.TemporaryImageLocations.Add(tmp);
+						this.db.SaveChanges();
+						string x = this.ReplaceImage(tmp.ID);
+						banner.BannerLocation = file_to_save;
+						this.query.SaveTxtLog("saved");
+						response.success = true;
+						response.code = HttpStatusCode.OK.ToString();
+					}
+				}
+				response.success = true;
+				response.message = "Banner Saved";
+				response.code = HttpStatusCode.OK.ToString();
+				this.db.AppBanners.Add(banner);
+				this.db.SaveChanges();
+			}
+			catch (Exception ex)
+			{
+				this.query.SaveTxtLog("Expection (UploadTemp):" + ex.ToString());
+				response.code = HttpStatusCode.ExpectationFailed.ToString();
+				response.success = false;
+				response.message = "Error Creating Shop Error-Code:20EXPD";
+			}
+			return response;
 		}
 	}
 }
